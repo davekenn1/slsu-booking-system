@@ -47,27 +47,60 @@ if(!$facility || $facility['status'] != 'available') {
 // Handle form submission
 if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $booking_date = mysqli_real_escape_string($conn, $_POST['booking_date']);
-    $time_slot = mysqli_real_escape_string($conn, $_POST['time_slot']);
+    $start_time = mysqli_real_escape_string($conn, $_POST['start_time']);
+    $end_time = mysqli_real_escape_string($conn, $_POST['end_time']);
+    
+    // Combine start and end time into the format we use for display
+    $time_slot = date('g:i A', strtotime($start_time)) . ' - ' . date('g:i A', strtotime($end_time));
+    
     $purpose = mysqli_real_escape_string($conn, $_POST['purpose']);
+    $event_type = mysqli_real_escape_string($conn, $_POST['event_type']);
     $organization_name = mysqli_real_escape_string($conn, $_POST['organization_name']);
     $contact = mysqli_real_escape_string($conn, $_POST['contact_number']);
-    $slot_interval = mysqli_real_escape_string($conn, $_POST['slot_interval']);
     
-    // Check for double booking
+    // Calculate Price (SLSU Event is Free, Outside is Paid)
+    if($event_type == 'SLSU Event') {
+        $total_price = 0;
+        $is_free = 1;
+    } else {
+        $total_price = $facility['price'];
+        $is_free = 0;
+    }
+
+    // Handle Document Upload
+    $document_path = '';
+    if($event_type == 'SLSU Event' && isset($_FILES['document']) && $_FILES['document']['error'] == 0) {
+        $allowed = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+        $filename = $_FILES['document']['name'];
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        
+        if(in_array($ext, $allowed)) {
+            $new_filename = time() . '_' . preg_replace('/[^a-zA-Z0-9]/', '_', $filename);
+            $upload_path = '../uploads/documents/' . $new_filename;
+            
+            // Make sure the uploads/documents folder exists in your project!
+            if(move_uploaded_file($_FILES['document']['tmp_name'], $upload_path)) {
+                $document_path = $new_filename;
+            }
+        } else {
+            $error = "❌ Invalid file type. Only PDF, DOC, DOCX, JPG, PNG are allowed.";
+        }
+    }
+
+    // Check for double booking (using the new start/end time logic)
     $check_sql = "SELECT * FROM bookings 
                   WHERE facility_id = $facility_id 
                   AND booking_date = '$booking_date' 
                   AND time_slot = '$time_slot'
-                  AND status != 'rejected'";
+                  AND status != 'rejected' AND status != 'cancelled'";
     $check_result = mysqli_query($conn, $check_sql);
     
     if(mysqli_num_rows($check_result) > 0) {
-        $error = "❌ This time slot is already booked. Please choose another date or time.";
-    } else {
+        $error = "❌ This time slot is already booked. Please choose another time.";
+    } else if(empty($error)) {
         // Insert booking
-        $price = mysqli_real_escape_string($conn, $facility['price']);
-        $insert_sql = "INSERT INTO bookings (user_id, facility_id, booking_date, time_slot, total_price, purpose, organization_name, contact_number, status, slot_interval) 
-               VALUES ($user_id, $facility_id, '$booking_date', '$time_slot', '$price', '$purpose', '$organization_name', '$contact', 'pending', '$slot_interval')";
+        $insert_sql = "INSERT INTO bookings (user_id, facility_id, booking_date, time_slot, total_price, purpose, event_type, document_path, is_free, organization_name, contact_number, status) 
+                       VALUES ($user_id, $facility_id, '$booking_date', '$time_slot', '$total_price', '$purpose', '$event_type', '$document_path', $is_free, '$organization_name', '$contact', 'pending')";
         
         if(mysqli_query($conn, $insert_sql)) {
             $success = "✅ Booking request submitted! Wait for officer approval.";
@@ -1015,7 +1048,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                         <i class="fas fa-list me-2"></i>View My Bookings
                                     </a>
                                 <?php else: ?>
-                                    <form method="POST">
+                                    <form method="POST" enctype="multipart/form-data">
                                         <div class="mb-3">
                                             <label class="form-label">
                                                 <i class="fas fa-calendar-day me-1" style="color: var(--slsu-blue);"></i>Select Date
@@ -1039,31 +1072,50 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                                             </select>
                                         </div>
                                         
-                                        <div class="mb-3">
-                                            <label class="form-label">
-                                                <i class="fas fa-clock me-1" style="color: var(--slsu-blue);"></i>Time Slot
-                                            </label>
-                                            <select class="form-control" id="time_slot" name="time_slot" required>
-                                                <option value="">Select time slot...</option>
-                                                <?php 
-                                                $selected_interval = isset($_POST['slot_interval']) ? (int)$_POST['slot_interval'] : 60;
-                                                $slots = generateTimeSlots($facility['open_time'], $facility['close_time'], $selected_interval);
-                                                foreach($slots as $slot): 
-                                                    $booked = isSlotBooked($facility_id, $booking_date ?? date('Y-m-d'), $slot['start_time'], $slot['end_time']);
-                                                ?>
-                                                    <option value="<?php echo $slot['display']; ?>" <?php echo $booked ? 'disabled style="color:red;"' : ''; ?>>
-                                                        <?php echo $slot['display']; ?> <?php echo $booked ? '❌ Booked' : '✅ Available'; ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
+                                        <div class="row">
+                                            <!-- TIME PICKER START -->
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">
+                                                    <i class="fas fa-clock me-1" style="color: var(--slsu-blue);"></i>Start Time
+                                                </label>
+                                                <input type="time" class="form-control" id="start_time" name="start_time" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">
+                                                    <i class="fas fa-hourglass-end me-1" style="color: var(--slsu-blue);"></i>End Time
+                                                </label>
+                                                <input type="time" class="form-control" id="end_time" name="end_time" required>
+                                            </div>
+                                            <!-- TIME PICKER END -->
                                         </div>
                                         
+                                        <!-- EVENT TYPE DROPDOWN -->
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-tags me-1" style="color: var(--slsu-blue);"></i>Event Type
+                                            </label>
+                                            <select class="form-control" id="event_type" name="event_type" required>
+                                                <option value="">Select event type...</option>
+                                                <option value="SLSU Event">SLSU Event (Meeting, Assembly, etc.) - FREE</option>
+                                                <option value="Outside Organization">Outside Organization (Wedding, etc.) - PAID</option>
+                                            </select>
+                                        </div>
+
                                         <div class="mb-3">
                                             <label class="form-label">
                                                 <i class="fas fa-align-left me-1" style="color: var(--slsu-blue);"></i>Purpose / Description
                                             </label>
                                             <textarea class="form-control" id="purpose" name="purpose" rows="3" required
                                                     placeholder="Describe your event or purpose for booking this facility..."></textarea>
+                                        </div>
+
+                                        <!-- FILE UPLOAD (Hidden by default) -->
+                                        <div class="mb-3" id="document_upload_section" style="display: none;">
+                                            <label class="form-label text-danger">
+                                                <i class="fas fa-file-upload me-1"></i>Upload Proof / Document (Required for SLSU Events)
+                                            </label>
+                                            <input type="file" class="form-control" id="document" name="document" accept=".pdf,.doc,.docx,.jpg,.png">
+                                            <small class="text-muted">Please upload a proposal, letter, or any proof that the event is legit.</small>
                                         </div>
                                         
                                         <div class="mb-3">
@@ -1190,6 +1242,23 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dateInput && dateInput.value) {
         updateSlots();
     }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const eventTypeSelect = document.getElementById('event_type');
+    const uploadSection = document.getElementById('document_upload_section');
+
+    eventTypeSelect.addEventListener('change', function() {
+        if(this.value === 'SLSU Event') {
+            uploadSection.style.display = 'block'; // Show upload
+            document.getElementById('document').required = true;
+        } else {
+            uploadSection.style.display = 'none'; // Hide upload
+            document.getElementById('document').required = false;
+        }
+    });
 });
 </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

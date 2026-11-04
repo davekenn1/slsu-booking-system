@@ -985,27 +985,42 @@ $result = mysqli_query($conn, $sql);
                                         <th>Facility</th>
                                         <th>Date</th>
                                         <th>Time Slot</th>
-                                        <th>Price</th>
-                                        <th>Purpose</th>
-                                        <th>Organization</th>
-                                        <th>Contact</th>
+                                        <th>Event Details</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php while($row = mysqli_fetch_assoc($result)): ?>
                                         <tr>
-                                            <td><i class="fas fa-user-graduate me-1"></i><?php echo $row['student_name']; ?></small>
-                                            <td><i class="fas fa-building me-1"></i><?php echo $row['facility_name']; ?></small>
-                                            <td><i class="fas fa-calendar-day me-1"></i><?php echo date('F j, Y', strtotime($row['booking_date'])); ?></small>
-                                            <td><i class="fas fa-clock me-1"></i><?php echo $row['time_slot']; ?></small>
-                                            <td>₱<?php echo number_format($row['total_price'], 2); ?></td>
-                                            <td><?php echo $row['purpose']; ?></small>
-                                            <td><?php echo $row['organization_name']; ?></small>
-                                            <td><i class="fas fa-phone me-1"></i><?php echo $row['contact_number']; ?></small>
+                                            <td>
+                                                    <i class="fas fa-user-graduate me-1"></i><?php echo $row['student_name']; ?><br>
+                                                    <small class="text-muted"><i class="fas fa-phone me-1"></i><?php echo $row['contact_number']; ?></small>
+                                                </td>
+                                                <td><i class="fas fa-building me-1"></i><?php echo $row['facility_name']; ?></td>
+                                                <td><i class="fas fa-calendar-day me-1"></i><?php echo date('F j, Y', strtotime($row['booking_date'])); ?></td>
+                                                <td><i class="fas fa-clock me-1"></i><?php echo $row['time_slot']; ?></td>
+                                                <td>
+                                                    <strong><?php echo $row['event_type']; ?></strong><br>
+                                                    <small><strong>Price:</strong> ₱<?php echo number_format($row['total_price'], 2); ?></small><br>
+                                                    <small><strong>Org:</strong> <?php echo $row['organization_name']; ?></small><br>
+                                                    <small class="text-muted"><?php echo $row['purpose']; ?></small>
+                                                    
+                                                    <!-- SHOW DOCUMENT IF EXISTS -->
+                                                    <?php if(!empty($row['document_path'])): ?>
+                                                        <br>
+                                                        <a href="../uploads/documents/<?php echo $row['document_path']; ?>" target="_blank" class="btn btn-sm btn-info mt-2">
+                                                            <i class="fas fa-file-alt me-1"></i> View Document
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </td>
                                             <td>
                                                 <!-- Approve button -->
-                                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal<?php echo $row['id']; ?>">
+                                                <button class="btn btn-success btn-sm approve-btn" 
+                                                        data-booking-id="<?php echo $row['id']; ?>"
+                                                        data-facility-name="<?php echo $row['facility_name']; ?>"
+                                                        data-student-name="<?php echo $row['student_name']; ?>"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#approveModal<?php echo $row['id']; ?>">
                                                     <i class="fas fa-check-circle me-1"></i>Approve
                                                 </button>
                                                 
@@ -1117,6 +1132,101 @@ $result = mysqli_query($conn, $sql);
         });
     }
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    const approveButtons = document.querySelectorAll('.approve-btn');
+    
+    approveButtons.forEach(function(button) {
+        button.addEventListener('click', function(event) {
+            
+            // ==========================================
+            // EVENT DATA
+            // ==========================================
+            const bookingId = this.dataset.bookingId;
+            const facilityName = this.dataset.facilityName;
+            const studentName = this.dataset.studentName;
+            
+            console.log("========================================");
+            console.log(" EVENT: Approve Booking clicked");
+            console.log(" Event Data 1 - Booking ID:", bookingId);
+            console.log(" Event Data 2 - Facility:", facilityName);
+            console.log(" Event Data 3 - Student:", studentName);
+            console.log("========================================");
+            
+            // ==========================================
+            // HANDLER 1: Update Status on Screen
+            // ==========================================
+            function updateStatus() {
+                // Find the row for this booking
+                const row = document.querySelector(`[data-booking-id="${bookingId}"]`).closest('tr');
+                
+                // Find and update the status badge
+                const statusBadge = row.querySelector('.badge-pending');
+                if(statusBadge) {
+                    statusBadge.className = 'badge-approved';
+                    statusBadge.innerHTML = ' Approved';
+                }
+                
+                console.log(" Handler 1: Status updated on screen for booking #" + bookingId);
+            }
+            
+            // ==========================================
+            // HANDLER 2: Show Notification on Screen
+            // ==========================================
+            function sendNotification() {
+                // Create a visible notification on the page
+                const notif = document.createElement('div');
+                notif.className = 'alert alert-success';
+                notif.style.position = 'fixed';
+                notif.style.top = '20px';
+                notif.style.right = '20px';
+                notif.style.zIndex = '9999';
+                notif.style.minWidth = '300px';
+                notif.innerHTML = ' Notification sent to <strong>' + studentName + '</strong>';
+                
+                document.body.appendChild(notif);
+                
+                // Auto-remove after 3 seconds
+                setTimeout(() => notif.remove(), 3000);
+                
+                console.log(" Handler 2: Notification displayed for " + studentName);
+            }
+            
+            // ==========================================
+            // HANDLER 3: Anonymous/Lambda Handler
+            // ==========================================
+            const logActivity = () => {
+                // Save to localStorage as a log
+                const logs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+                logs.push({ 
+                    action: 'approve',
+                    bookingId: bookingId,
+                    facility: facilityName,
+                    student: studentName,
+                    timestamp: new Date().toLocaleString()
+                });
+                localStorage.setItem('activityLogs', JSON.stringify(logs));
+                
+                console.log(" Handler 3 (Lambda): Activity saved to local log");
+            };
+            
+            // ==========================================
+            // CALL ALL HANDLERS
+            // ==========================================
+            updateStatus();
+            sendNotification();
+            logActivity();
+            
+            console.log(" All handlers executed successfully!");
+            console.log("========================================");
+        });
+    });
+});
+</script>
+
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
