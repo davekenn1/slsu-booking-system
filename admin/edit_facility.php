@@ -63,32 +63,33 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                status = '$status'
                WHERE id = $facility_id";
 
-        if(mysqli_query($conn, $update_sql)) {
-            // Generate new hash from updated data
-            $hash_data = [
-                $facility_id,
-                $name,
-                $description,
-                $capacity,
-                $price,
-                $open_time,
-                $close_time,
-                $status
-            ];
-            $row_hash = generateRowHash($hash_data);
-            
-            // Update the hash
-            $update_hash = "UPDATE facilities SET row_hash = '$row_hash' WHERE id = $facility_id";
-            mysqli_query($conn, $update_hash);
-            
-            $success = "✅ Facility updated successfully!";
-        } else {
-            $error = "❌ Error updating facility: " . mysqli_error($conn);
-        }
-        // Also update hash_table
-        $update_hash_log = "UPDATE hash_table SET row_hash = '$row_hash', updated_at = NOW() 
-                            WHERE table_name = 'facilities' AND record_id = $facility_id";
-        mysqli_query($conn, $update_hash_log);
+                if(mysqli_query($conn, $update_sql)) {
+                // Generate new hash from updated data
+                $hash_data = [
+                    $facility_id,
+                    $name,
+                    $description,
+                    $capacity,
+                    $price,
+                    $open_time,
+                    $close_time,
+                    $status
+                ];
+                $row_hash = generateRowHash($hash_data);
+                
+                // Update the hash in facilities table
+                $update_hash = "UPDATE facilities SET row_hash = '$row_hash' WHERE id = $facility_id";
+                mysqli_query($conn, $update_hash);
+                
+                // Also update hash_table
+                $update_hash_log = "UPDATE hash_table SET row_hash = '$row_hash', updated_at = NOW() 
+                                    WHERE table_name = 'facilities' AND record_id = $facility_id";
+                mysqli_query($conn, $update_hash_log);
+                
+                $success = "✅ Facility updated successfully!";
+            } else {
+                $error = "❌ Error updating facility: " . mysqli_error($conn);
+            }
 }
 ?>
 
@@ -1011,7 +1012,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </div>
                         <?php endif; ?>
                         
-                        <form method="POST">
+                        <form method="POST" enctype="multipart/form-data">
                             <div class="mb-3">
                                 <label class="form-label">
                                     <i class="fas fa-tag me-1" style="color: var(--slsu-blue);"></i>Facility Name

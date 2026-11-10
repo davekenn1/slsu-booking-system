@@ -1021,7 +1021,7 @@ echo "<!-- Number of results in \$result: " . mysqli_num_rows($result) . " -->";
                                 <div class="card facility-card">
                                     <div class="card-body">
                                         <div class="text-center">
-                                            <img src="../uploads/facilities/<?php echo $facility['image']; ?>" 
+                                            <img src="../uploads/facilities/<?php echo $facility['image'] ? $facility['image'] : 'default.jpg'; ?>" 
                                                 class="img-fluid rounded mb-3" 
                                                 style="height: 150px; width: 100%; object-fit: cover;"
                                                 onerror="this.src='../uploads/facilities/default.jpg'">
