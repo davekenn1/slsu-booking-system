@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../includes/config.php';
+require_once '../includes/send_email.php';
 
 // Use the role-specific connection from session
 if(isset($_SESSION['db_conn'])) {
@@ -28,6 +29,27 @@ if(isset($_GET['action']) && isset($_GET['booking_id'])) {
     $facility_name = $facility_row['name'];
 
     if($action == 'approve') {
+         // Get the student's email from the database
+        $email_sql = "SELECT u.email, u.full_name FROM bookings b JOIN users u ON b.user_id = u.id WHERE b.id = $booking_id";
+        $email_result = mysqli_query($conn, $email_sql);
+        $student = mysqli_fetch_assoc($email_result);
+        
+        $student_email = $student['email'];
+        $student_name = $student['full_name'];
+        
+        // Prepare email content
+        $email_subject = "Booking Approved: " . $facility_name;
+        $email_body = "
+            <h3>Hello $student_name,</h3>
+            <p>Great news! Your booking request for <strong>$facility_name</strong> has been <strong>APPROVED</strong>.</p>
+            <p>Please log in to your account to view the details and download your receipt.</p>
+            <br>
+            <p>Thank you,<br>SLSU Facility Management</p>
+        ";
+        
+        // Send the email
+        sendEmailNotification($student_email, $student_name, $email_subject, $email_body);
+        
         $status = 'approved';
         $message = "✅ Your booking for **$facility_name** has been APPROVED!";
     } else {

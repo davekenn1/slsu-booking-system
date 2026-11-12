@@ -6,3 +6,4 @@ uploads/
 .DS_Store
 .idea/
 .vscode/
+includes/send_email.php
