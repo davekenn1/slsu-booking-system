@@ -12,6 +12,7 @@ if(!isset($_SESSION['user_id']) || $_SESSION['role'] != 'user') {
 }
 
 $booking_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$reason = isset($_GET['reason']) ? mysqli_real_escape_string($conn, $_GET['reason']) : 'No reason provided';
 $user_id = $_SESSION['user_id'];
 
 // Verify the booking belongs to this user and is still pending
@@ -19,8 +20,8 @@ $check_sql = "SELECT * FROM bookings WHERE id = $booking_id AND user_id = $user_
 $check_result = mysqli_query($conn, $check_sql);
 
 if(mysqli_num_rows($check_result) == 1) {
-    // Update status to 'cancelled'
-    $update_sql = "UPDATE bookings SET status = 'cancelled' WHERE id = $booking_id";
+    // Update status to 'cancelled' AND save the reason
+    $update_sql = "UPDATE bookings SET status = 'cancelled', cancel_reason = '$reason' WHERE id = $booking_id";
     mysqli_query($conn, $update_sql);
     
     // Get facility name first

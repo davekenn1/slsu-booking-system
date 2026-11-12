@@ -83,6 +83,22 @@ $recent_sql = "SELECT b.*, f.name as facility_name, u.full_name as student_name
                JOIN users u ON b.user_id = u.id 
                ORDER BY b.created_at DESC LIMIT 5";
 $recent_result = mysqli_query($conn, $recent_sql);
+
+// Get booking counts per facility for the chart
+$chart_facility_sql = "SELECT f.name as facility_name, COUNT(b.id) as booking_count 
+                       FROM facilities f 
+                       LEFT JOIN bookings b ON f.id = b.facility_id AND b.status != 'cancelled' AND b.status != 'rejected'
+                       GROUP BY f.id 
+                       ORDER BY booking_count DESC";
+$chart_facility_result = mysqli_query($conn, $chart_facility_sql);
+
+$facility_names = [];
+$facility_counts = [];
+
+while($row = mysqli_fetch_assoc($chart_facility_result)) {
+    $facility_names[] = $row['facility_name'];
+    $facility_counts[] = $row['booking_count'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -1069,6 +1085,18 @@ $recent_result = mysqli_query($conn, $recent_sql);
                     </div>
                 </div>
 
+                <!-- Facility Booking Chart Card -->
+            <div class="card content-card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie me-2" style="color: var(--slsu-blue);"></i>Most Booked Facilities
+                </div>
+                <div class="card-body">
+                    <div style="max-width: 700px; height: 300px; margin: 0 auto;">
+                        <canvas id="facilityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
                 <!-- Recent Bookings Card -->
                 <div class="card content-card mb-4">
                     <div class="card-header">
@@ -1210,6 +1238,46 @@ $recent_result = mysqli_query($conn, $recent_sql);
             }
         });
     }
+</script>
+
+<script>
+    // Facility Booking Chart
+    const facilityCtx = document.getElementById('facilityChart').getContext('2d');
+    const facilityChart = new Chart(facilityCtx, {
+        type: 'doughnut', // You can change this to 'bar' or 'pie' if you prefer
+        data: {
+            labels: <?php echo json_encode($facility_names); ?>,
+            datasets: [{
+                data: <?php echo json_encode($facility_counts); ?>,
+                backgroundColor: [
+                    '#2E75B6', // SLSU Blue
+                    '#27ae60', // Green
+                    '#F39C12', // Orange
+                    '#e74c3c', // Red
+                    '#8e44ad', // Purple
+                    '#16a085',
+                    '#f63434'  
+                ],
+                borderWidth: 1
+            }]
+        },
+                options: {
+            responsive: true,
+            maintainAspectRatio: false, // Allows us to control the height
+            plugins: {
+                legend: {
+                    position: 'right', // Moves the legend to the right side
+                    labels: {
+                        boxWidth: 15,       // Makes the color boxes smaller and cleaner
+                        padding: 20,        // Adds space between each facility name
+                        font: {
+                            size: 13        // Adjusts the text size
+                        }
+                    }
+                }
+            }
+        }
+    });
 </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

@@ -1014,7 +1014,7 @@ $months_result = mysqli_query($conn, $months_sql);
                                             </td>
                                             <td>
                                                 <?php if($row['status'] == 'pending'): ?>
-                                                    <a href="cancel_booking.php?id=<?php echo $row['id']; ?>" class="btn btn-danger btn-sm">Cancel</a>
+                                                    <a href="#" onclick="cancelBooking(<?php echo $row['id']; ?>)" class="btn btn-danger btn-sm">Cancel</a>
                                                 <?php elseif($row['status'] == 'approved'): ?>
                                                     <a href="write_review.php?booking_id=<?php echo $row['id']; ?>&facility_id=<?php echo $row['facility_id']; ?>" class="btn btn-primary btn-sm">⭐ Write Review</a>
                                                 <?php else: ?>
@@ -1068,6 +1068,20 @@ $months_result = mysqli_query($conn, $months_sql);
             }
         });
     }
+</script>
+<script>
+function cancelBooking(bookingId) {
+    // Ask the user for a reason using a browser prompt
+    let reason = prompt("Please enter a reason for cancelling this booking:");
+    
+    // If they type something (and didn't click Cancel)
+    if (reason != null && reason.trim() != "") {
+        // Go to the cancel page with the reason attached to the URL
+        window.location.href = "cancel_booking.php?id=" + bookingId + "&reason=" + encodeURIComponent(reason);
+    } else if (reason != null) {
+        alert("Cancellation failed. You must provide a reason.");
+    }
+}
 </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
