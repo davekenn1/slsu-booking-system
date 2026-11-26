@@ -990,7 +990,7 @@ $months_result = mysqli_query($conn, $months_sql);
                                         <th>Price</th>
                                         <th>Purpose</th>
                                         <th>Status</th>
-                                        <th>Action</th>
+                                        <th>Action & QR Code</th>
                                         <th>Officer Remarks</th>
                                         <th>Requested On</th>
                                     </tr>
@@ -1012,15 +1012,28 @@ $months_result = mysqli_query($conn, $months_sql);
                                                     <span class="badge-rejected"><i class="fas fa-times-circle me-1"></i>Rejected</span>
                                                 <?php endif; ?>
                                             </td>
+                                         <!-- ACTION COLUMN -->
                                             <td>
                                                 <?php if($row['status'] == 'pending'): ?>
                                                     <a href="#" onclick="cancelBooking(<?php echo $row['id']; ?>)" class="btn btn-danger btn-sm">Cancel</a>
                                                 <?php elseif($row['status'] == 'approved'): ?>
-                                                    <a href="write_review.php?booking_id=<?php echo $row['id']; ?>&facility_id=<?php echo $row['facility_id']; ?>" class="btn btn-primary btn-sm">⭐ Write Review</a>
+                                                    <a href="write_review.php?booking_id=<?php echo $row['id']; ?>&facility_id=<?php echo $row['facility_id']; ?>" class="btn btn-primary btn-sm mb-2 d-block">⭐ Write Review</a>
+                                                    
+                                                     <!-- QR CODE API -->
+                                                    <?php 
+                                                        $qr_data = "SLSU-BOOKING-VERIFIED-ID-" . $row['id'];
+                                                        $qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=" . urlencode($qr_data);
+                                                    ?>
+                                                    <div class="text-center">
+                                                        <img src="<?php echo $qr_api_url; ?>" alt="QR Code" style="width: 80px; height: 80px; border: 1px solid #ddd; border-radius: 5px; padding: 3px; background: white;">
+                                                        <br>
+                                                        <small class="text-muted" style="font-size: 10px;">Scan to Verify</small>
+                                                    </div>
+                                                    
                                                 <?php else: ?>
                                                     <span class="text-muted">—</span>
                                                 <?php endif; ?>
-                                            </td>              
+                                            </td>               
                                             <td><?php echo $row['officer_remarks'] ?: '<em class="text-muted">—</em>'; ?></small>
                                             <td><i class="fas fa-calendar-plus me-1"></i><?php echo date('M j, Y g:i A', strtotime($row['created_at'])); ?></small>
                                         </tr>
