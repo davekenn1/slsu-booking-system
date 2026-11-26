@@ -333,10 +333,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </label>
                             <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">
-                                <i class="fas fa-lock me-1" style="color: #2E75B6;"></i>Password
-                            </label>
+                       <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock me-1" style="color: #2E75B6;"></i>Password
+                                </label>
+                                <a href="forgot_password.php" class="text-decoration-none" style="font-size: 0.85rem; margin-top: 2px;">Forgot Password?</a>
+                            </div>
                             <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
                         </div>
                         <button type="submit" class="btn btn-primary btn-login">
@@ -344,8 +347,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </button>
                     </form>
 
-                    <div class="text-center mt-3">
-                        <small>Don't have an account? <a href="register.php">Register here</a></small>
+                    <div class="text-center mt-4">
+                        <small class="text-muted">Don't have an account? <a href="register.php" class="text-decoration-none fw-bold">Register here</a></small>
                     </div>
                 </div>
 

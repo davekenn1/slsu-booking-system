@@ -46,7 +46,6 @@ if(isset($_GET['action']) && isset($_GET['booking_id'])) {
             <br>
             <p>Thank you,<br>SLSU Facility Management</p>
         ";
-        
         // Send the email
         sendEmailNotification($student_email, $student_name, $email_subject, $email_body);
         
