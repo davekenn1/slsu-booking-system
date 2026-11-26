@@ -1,5 +1,6 @@
 <?php
 // Database configuration
+date_default_timezone_set('Asia/Manila');
 $host = 'localhost';
 $database = 'slsu_booking_system';
 
@@ -76,5 +77,17 @@ function generateRowHash($data) {
 function verifyRowHash($stored_hash, $data) {
     $current_hash = generateRowHash($data);
     return ($stored_hash === $current_hash);
+}
+
+// Special connection for Forgot Password page
+function getResetConnection() {
+    global $host, $database;
+    $conn = mysqli_connect($host, 'reset_user', 'ResetPass123', $database);
+    
+    if (!$conn) {
+        die("Connection failed: " . mysqli_connect_error());
+    }
+    
+    return $conn;
 }
 ?>
